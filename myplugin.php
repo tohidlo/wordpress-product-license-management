@@ -3,12 +3,22 @@
 Plugin Name: myplugin
 */
 
-$licmy_allowed_domain = 'example.com';
-$licmy_current_domain = parse_url(home_url(), PHP_URL_HOST);
+function licmy_check_remote_domain() {
+    $server_api = 'http://localhost/server-api.php';
+    $current_domain = parse_url(home_url(), PHP_URL_HOST);
 
-if ($licmy_current_domain !== $licmy_allowed_domain) {
-	if (function_exists('deactivate_plugins')) {
-        deactivate_plugins(plugin_basename(__FILE__));
+    $response = wp_remote_get($server_api . '?domain=' . $current_domain);
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (empty($data['status']) || $data['status'] !== 'ok') {
+        if (function_exists('deactivate_plugins')) {
+            deactivate_plugins(plugin_basename(__FILE__));
+        }
+        die('License invalid: this plugin is not allowed on this domain.');
     }
-    die('License invalid: this plugin can only be used on the registered domain.');
+
+    return true;
 }
+
+licmy_check_remote_domain();
